@@ -188,7 +188,11 @@ public class DubboBootstrap {
     /**
      * See {@link ApplicationModel} and {@link ExtensionLoader} for why DubboBootstrap is designed to be singleton.
      */
+    /**
+     * 构造方法用private修饰，只能通过该方法获取单例实例
+     */
     public static DubboBootstrap getInstance() {
+        // 双重判断加锁获取对象实例
         if (instance == null) {
             synchronized (DubboBootstrap.class) {
                 if (instance == null) {
@@ -200,10 +204,13 @@ public class DubboBootstrap {
     }
 
     private DubboBootstrap() {
+        // 通过dubbo spi加载配置管理器 ConfigManager
         configManager = ApplicationModel.getConfigManager();
+        // 通过dubbo spi加载环境变量 environment
         environment = ApplicationModel.getEnvironment();
-
+        // 注册Dubbo服务宕机钩子
         DubboShutdownHook.getDubboShutdownHook().register();
+        // 添加Dubbo服务宕机回调，释放资源
         ShutdownHookCallbacks.INSTANCE.addCallback(DubboBootstrap.this::destroy);
     }
 
@@ -512,21 +519,26 @@ public class DubboBootstrap {
      * Initialize
      */
     public void initialize() {
+        // 判断是否初始化过，如已初始化过直接返回
         if (!initialized.compareAndSet(false, true)) {
             return;
         }
-
+        // 初始化实现了FrameworkExt的接口类，如 ConfigManager、Environment、ServiceRepository
         ApplicationModel.initFrameworkExts();
-
+        // 启动配置中心
         startConfigCenter();
 
+        // 加载远程配置，即配置中心配置
         loadRemoteConfigs();
 
+        // 检查dubbo各种配置的合法性
         checkGlobalConfigs();
 
         // @since 2.7.8
+        // 启动元数据中心
         startMetadataCenter();
 
+        // 初始化MetadataService和WritableMetadataService
         initMetadataService();
 
         if (logger.isInfoEnabled()) {
@@ -536,6 +548,7 @@ public class DubboBootstrap {
 
     private void checkGlobalConfigs() {
         // check Application
+        // 检查application配置
         ConfigValidationUtils.validateApplicationConfig(getApplication());
 
         // check Metadata
@@ -593,12 +606,13 @@ public class DubboBootstrap {
     }
 
     private void startConfigCenter() {
-
+        // 当没有指定配置中心时，使用注册中心充当配置中心
         useRegistryAsConfigCenterIfNecessary();
 
         Collection<ConfigCenterConfig> configCenters = configManager.getConfigCenters();
 
         // check Config Center
+        // 当配置中心为空时
         if (CollectionUtils.isEmpty(configCenters)) {
             ConfigCenterConfig configCenterConfig = new ConfigCenterConfig();
             configCenterConfig.refresh();
@@ -608,6 +622,7 @@ public class DubboBootstrap {
             }
         } else {
             for (ConfigCenterConfig configCenterConfig : configCenters) {
+                // 刷新配置中心配置
                 configCenterConfig.refresh();
                 ConfigValidationUtils.validateConfigCenterConfig(configCenterConfig);
             }
@@ -616,22 +631,26 @@ public class DubboBootstrap {
         if (CollectionUtils.isNotEmpty(configCenters)) {
             CompositeDynamicConfiguration compositeDynamicConfiguration = new CompositeDynamicConfiguration();
             for (ConfigCenterConfig configCenter : configCenters) {
+                // prepareEnvironment方法中获取配置中心配置
                 compositeDynamicConfiguration.addConfiguration(prepareEnvironment(configCenter));
             }
             environment.setDynamicConfiguration(compositeDynamicConfiguration);
         }
+        // 刷新Dubbo所有配置信息
         configManager.refreshAll();
     }
 
     private void startMetadataCenter() {
 
+        // 如果未指定元数据中心，默认注册中心为元数据中心
         useRegistryAsMetadataCenterIfNecessary();
-
+        // 获取applicationConfig配置
         ApplicationConfig applicationConfig = getApplication();
-
+        // 获取元数据中心类型
         String metadataType = applicationConfig.getMetadataType();
         // FIXME, multiple metadata config support.
         Collection<MetadataReportConfig> metadataReportConfigs = configManager.getMetadataConfigs();
+        // 如果配置了元数据中心类型为 remote, 元数据中心配置不能为空
         if (CollectionUtils.isEmpty(metadataReportConfigs)) {
             if (REMOTE_METADATA_STORAGE_TYPE.equals(metadataType)) {
                 throw new IllegalStateException("No MetadataConfig found, Metadata Center address is required when 'metadata=remote' is enabled.");
@@ -641,9 +660,11 @@ public class DubboBootstrap {
 
         for (MetadataReportConfig metadataReportConfig : metadataReportConfigs) {
             ConfigValidationUtils.validateMetadataConfig(metadataReportConfig);
+            // 校验元数据中心配置合法性
             if (!metadataReportConfig.isValid()) {
                 continue;
             }
+            // 初始化MetadataReport
             MetadataReportInstance.init(metadataReportConfig);
         }
     }
@@ -832,7 +853,9 @@ public class DubboBootstrap {
     private void loadRemoteConfigs() {
         // registry ids to registry configs
         List<RegistryConfig> tmpRegistries = new ArrayList<>();
+        // 获取配置中心中的 dubbo.registries. 配置
         Set<String> registryIds = configManager.getRegistryIds();
+        // 添加配置中心中的注册中心配置
         registryIds.forEach(id -> {
             if (tmpRegistries.stream().noneMatch(reg -> reg.getId().equals(id))) {
                 tmpRegistries.add(configManager.getRegistry(id).orElseGet(() -> {
@@ -843,11 +866,12 @@ public class DubboBootstrap {
                 }));
             }
         });
-
+        // 添加注册中心配置
         configManager.addRegistries(tmpRegistries);
 
         // protocol ids to protocol configs
         List<ProtocolConfig> tmpProtocols = new ArrayList<>();
+        // 获取配置中心中的 dubbo.protocols. 配置
         Set<String> protocolIds = configManager.getProtocolIds();
         protocolIds.forEach(id -> {
             if (tmpProtocols.stream().noneMatch(prot -> prot.getId().equals(id))) {
@@ -859,7 +883,7 @@ public class DubboBootstrap {
                 }));
             }
         });
-
+        // 添加协议配置
         configManager.addProtocols(tmpProtocols);
     }
 
@@ -875,15 +899,21 @@ public class DubboBootstrap {
     /**
      * Start the bootstrap
      */
+    // 启动Dubbo服务入口方法
     public DubboBootstrap start() {
+        // 判断服务是否已启动
         if (started.compareAndSet(false, true)) {
+            // 设置销毁标识为false
             destroyed.set(false);
+            // 设置就绪标识为false
             ready.set(false);
+            // 初始化工作
             initialize();
             if (logger.isInfoEnabled()) {
                 logger.info(NAME + " is starting...");
             }
             // 1. export Dubbo Services
+            // 暴露dubbo服务
             exportServices();
 
             // Not only provider register
@@ -1018,33 +1048,41 @@ public class DubboBootstrap {
     /* serve for builder apis, end */
 
     private DynamicConfiguration prepareEnvironment(ConfigCenterConfig configCenter) {
+        // 检查配置中心是否合法，检查address和protocol是否合法
         if (configCenter.isValid()) {
+            // 检查是否已经初始化过
             if (!configCenter.checkOrUpdateInited()) {
                 return null;
             }
+            // 获取配置中心配置
             DynamicConfiguration dynamicConfiguration = getDynamicConfiguration(configCenter.toUrl());
+            // 获指定group下的配置文件具体配置信息，默认configFile: dubbo.properties group:dubbo
             String configContent = dynamicConfiguration.getProperties(configCenter.getConfigFile(), configCenter.getGroup());
-
+            // 获取application name
             String appGroup = getApplication().getName();
             String appConfigContent = null;
             if (isNotEmpty(appGroup)) {
+                // 获取appConfigFile中的配置信息
                 appConfigContent = dynamicConfiguration.getProperties
                         (isNotEmpty(configCenter.getAppConfigFile()) ? configCenter.getAppConfigFile() : configCenter.getConfigFile(),
                                 appGroup
                         );
             }
             try {
+                // 设置配置中心优先级更高
                 environment.setConfigCenterFirst(configCenter.isHighestPriority());
                 Map<String, String> globalRemoteProperties = parseProperties(configContent);
                 if (CollectionUtils.isEmptyMap(globalRemoteProperties)) {
                     logger.info("No global configuration in config center");
                 }
+                // 更新全局配置信息
                 environment.updateExternalConfigurationMap(globalRemoteProperties);
 
                 Map<String, String> appRemoteProperties = parseProperties(appConfigContent);
                 if (CollectionUtils.isEmptyMap(appRemoteProperties)) {
                     logger.info("No application level configuration in config center");
                 }
+                // 更新app配置信息
                 environment.updateAppExternalConfigurationMap(appRemoteProperties);
             } catch (IOException e) {
                 throw new IllegalStateException("Failed to parse configurations from Config Center.", e);
@@ -1073,6 +1111,7 @@ public class DubboBootstrap {
             ServiceConfig serviceConfig = (ServiceConfig) sc;
             serviceConfig.setBootstrap(this);
 
+            // 是否异步暴露服务，默认为false
             if (exportAsync) {
                 ExecutorService executor = executorRepository.getServiceExporterExecutor();
                 Future<?> future = executor.submit(() -> {
@@ -1084,12 +1123,14 @@ public class DubboBootstrap {
                 });
                 asyncExportingFutures.add(future);
             } else {
+                // 暴露服务
                 exportService(serviceConfig);
             }
         });
     }
 
     private void exportService(ServiceConfig sc) {
+        // 判断服务是否已经暴露过
         if (exportedServices.containsKey(sc.getServiceName())) {
             throw new IllegalStateException("There are multiple ServiceBean instances with the same service name: [" +
                     sc.getServiceName() + "], instances: [" +
@@ -1097,7 +1138,9 @@ public class DubboBootstrap {
                     sc.toString() + "]. Only one service can be exported for the same triple (group, interface, version), " +
                     "please modify the group or version if you really need to export multiple services of the same interface.");
         }
+        // 暴露服务
         sc.export();
+        // 添加已暴露的服务
         exportedServices.put(sc.getServiceName(), sc);
     }
 

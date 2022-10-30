@@ -196,8 +196,10 @@ public class RegistryProtocol implements Protocol {
 
     @Override
     public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
+        // 获取服务注册地址
         URL registryUrl = getRegistryUrl(originInvoker);
         // url to export locally
+        // 获取服务提供者地址
         URL providerUrl = getProviderUrl(originInvoker);
 
         // Subscribe the override data
@@ -205,20 +207,25 @@ public class RegistryProtocol implements Protocol {
         //  the same service. Because the subscribed is cached key with the name of the service, it causes the
         //  subscription information to cover.
         final URL overrideSubscribeUrl = getSubscribedOverrideUrl(providerUrl);
+        // 添加配置变更监听器
         final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl, originInvoker);
         overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
 
         providerUrl = overrideUrlWithConfig(providerUrl, overrideSubscribeListener);
         // export invoker
+        // 本地服务暴露
         final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl);
 
         // url to registry
+        // 获取注册中心
         final Registry registry = getRegistry(originInvoker);
+        // 获取注册url
         final URL registeredProviderUrl = getUrlToRegistry(providerUrl, registryUrl);
 
         // decide if we need to delay publish
         boolean register = providerUrl.getParameter(REGISTER_KEY, true);
         if (register) {
+            // 向注册中心进行服务注册
             registry.register(registeredProviderUrl);
         }
 
@@ -260,6 +267,8 @@ public class RegistryProtocol implements Protocol {
 
         return (ExporterChangeableWrapper<T>) bounds.computeIfAbsent(key, s -> {
             Invoker<?> invokerDelegate = new InvokerDelegate<>(originInvoker, providerUrl);
+            // protocol.export(invokerDelegate) 根据使用协议进行服务暴露，例如dubbo
+            // 服务暴露顺序 ProtocolFilterWrapper --> ProtocolListenerWrapper --> DubboProtocol
             return new ExporterChangeableWrapper<>((Exporter<T>) protocol.export(invokerDelegate), originInvoker);
         });
     }

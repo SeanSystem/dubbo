@@ -171,6 +171,7 @@ public abstract class ServiceConfigBase<T> extends AbstractServiceConfig {
         if (ref == null) {
             throw new IllegalStateException("ref not allow null!");
         }
+        // 判断ref是否是接口实例
         if (!interfaceClass.isInstance(ref)) {
             throw new IllegalStateException("The class "
                     + ref.getClass().getName() + " unimplemented interface "
@@ -199,14 +200,17 @@ public abstract class ServiceConfigBase<T> extends AbstractServiceConfig {
     }
 
     public void checkProtocol() {
+        // 如果provider不为空，且protocols和protocolIds为空，设置provider中的protocol和protocolIds
         if (provider != null && notHasSelfProtocolProperty()) {
             setProtocols(provider.getProtocols());
             setProtocolIds(provider.getProtocolIds());
         }
 
+        // 如果protocols为空，provider不为空，设置provider中的protocol
         if (CollectionUtils.isEmpty(protocols) && provider != null) {
             setProtocols(provider.getProtocols());
         }
+        // 设置默认的Protocols或将ProtocolIds转换为Protocols
         convertProtocolIdsToProtocols();
     }
 
@@ -229,7 +233,7 @@ public abstract class ServiceConfigBase<T> extends AbstractServiceConfig {
 
     private void convertProtocolIdsToProtocols() {
         if (StringUtils.isEmpty(protocolIds)) {
-            if (CollectionUtils.isEmpty(protocols)) {
+            if (CollectionUtils.isEmpty(protocols)) { // 如果protocolIds和protocols都为空，获取默认的Protocols
                 List<ProtocolConfig> protocolConfigs = ApplicationModel.getConfigManager().getDefaultProtocols();
                 if (protocolConfigs.isEmpty()) {
                     protocolConfigs = new ArrayList<>(1);
@@ -242,6 +246,7 @@ public abstract class ServiceConfigBase<T> extends AbstractServiceConfig {
                 setProtocols(protocolConfigs);
             }
         } else {
+            // 将protocolIds转换为protocols
             String[] arr = COMMA_SPLIT_PATTERN.split(protocolIds);
             List<ProtocolConfig> tmpProtocols = new ArrayList<>();
             Arrays.stream(arr).forEach(id -> {

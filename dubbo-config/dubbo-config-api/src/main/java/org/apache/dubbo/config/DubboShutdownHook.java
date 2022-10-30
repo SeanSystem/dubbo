@@ -41,6 +41,7 @@ public class DubboShutdownHook extends Thread {
 
     private static final DubboShutdownHook DUBBO_SHUTDOWN_HOOK = new DubboShutdownHook("DubboShutdownHook");
 
+    // 服务宕机回调
     private final ShutdownHookCallbacks callbacks = ShutdownHookCallbacks.INSTANCE;
 
     /**

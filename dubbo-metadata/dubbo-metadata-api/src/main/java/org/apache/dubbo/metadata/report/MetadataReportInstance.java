@@ -41,9 +41,11 @@ public class MetadataReportInstance {
     private static final Map<String, MetadataReport> metadataReports = new HashMap<>();
 
     public static void init(MetadataReportConfig config) {
+        // 判断是否已经初始化过
         if (!init.compareAndSet(false, true)) {
             return;
         }
+        // 获取metadataReportFactory
         MetadataReportFactory metadataReportFactory = ExtensionLoader.getExtensionLoader(MetadataReportFactory.class).getAdaptiveExtension();
         URL url = config.toUrl();
         if (METADATA_REPORT_KEY.equals(url.getProtocol())) {
@@ -57,6 +59,7 @@ public class MetadataReportInstance {
         String relatedRegistryId = config.getRegistry() == null ? DEFAULT_KEY : config.getRegistry();
 //        RegistryConfig registryConfig = ApplicationModel.getConfigManager().getRegistry(relatedRegistryId)
 //                .orElseThrow(() -> new IllegalStateException("Registry id " + relatedRegistryId + " does not exist."));
+        // 获取指定protocol下的MetadataReport，存入map集合
         metadataReports.put(relatedRegistryId, metadataReportFactory.getMetadataReport(url));
     }
 

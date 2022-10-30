@@ -38,7 +38,9 @@ public class JavassistProxyFactory extends AbstractProxyFactory {
     @Override
     public <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url) {
         // TODO Wrapper cannot handle this scenario correctly: the classname contains '$'
+        // 生成代理对象的Wrapper对象，生成wrapper对象中的invokeMethod方法中会根据代理对象的方法名调用代理对象对应的方法
         final Wrapper wrapper = Wrapper.getWrapper(proxy.getClass().getName().indexOf('$') < 0 ? proxy.getClass() : type);
+        // 返回Invoker对象，调用doInvoke方法实际调用的是wrapper对象invokerMethod方法，即本质是调用代理对象的对应方法
         return new AbstractProxyInvoker<T>(proxy, type, url) {
             @Override
             protected Object doInvoke(T proxy, String methodName,

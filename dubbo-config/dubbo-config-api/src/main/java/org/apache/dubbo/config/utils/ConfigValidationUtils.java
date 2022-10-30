@@ -305,11 +305,13 @@ public class ConfigValidationUtils {
      *                       side, it is the {@link Class} of the remote service interface that will be referenced
      */
     public static void checkMock(Class<?> interfaceClass, AbstractInterfaceConfig config) {
+        // 获取mock属性
         String mock = config.getMock();
+        // 如果没有执行mock属性，直接返回
         if (ConfigUtils.isEmpty(mock)) {
             return;
         }
-
+        // 获取Normalize mock属性值
         String normalizedMock = MockInvoker.normalizeMock(mock);
         if (normalizedMock.startsWith(RETURN_PREFIX)) {
             normalizedMock = normalizedMock.substring(RETURN_PREFIX.length()).trim();
