@@ -335,6 +335,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         }
         // 暴露服务
         doExportUrls();
+        // 设置bootstrap状态为就绪
         bootstrap.setReady(true);
     }
 
@@ -573,7 +574,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                     Exporter<?> exporter = PROTOCOL.export(wrapperInvoker);
                     exporters.add(exporter);
                 }
-
+                // 发布暴露服务的元数据信息
                 MetadataUtils.publishServiceDefinition(url);
             }
         }

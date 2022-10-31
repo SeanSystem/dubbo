@@ -917,8 +917,10 @@ public class DubboBootstrap {
             exportServices();
 
             // Not only provider register
+            // 判断是否只注册provider
             if (!isOnlyRegisterProvider() || hasExportedServices()) {
                 // 2. export MetadataService
+                // 将MetadataService暴露为Dubbo服务
                 exportMetadataService();
                 //3. Register the local ServiceInstance if required
                 registerServiceInstance();

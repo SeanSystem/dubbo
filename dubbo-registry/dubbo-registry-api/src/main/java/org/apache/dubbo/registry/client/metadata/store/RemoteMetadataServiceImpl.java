@@ -93,6 +93,7 @@ public class RemoteMetadataServiceImpl {
 
     public void publishServiceDefinition(URL url) {
         String side = url.getParameter(SIDE_KEY);
+        // 判断是Provider还是Consumer
         if (PROVIDER_SIDE.equalsIgnoreCase(side)) {
             //TODO, the params part is duplicate with that stored by exportURL(url), can be further optimized in the future.
             publishProvider(url);
@@ -114,8 +115,10 @@ public class RemoteMetadataServiceImpl {
                 Class interfaceClass = Class.forName(interfaceName);
                 FullServiceDefinition fullServiceDefinition = ServiceDefinitionBuilder.buildFullDefinition(interfaceClass,
                         providerUrl.getParameters());
+                // 获取所有MetadataReport并遍历，进行服务元数据发布
                 for (Map.Entry<String, MetadataReport> entry : getMetadataReports().entrySet()) {
                     MetadataReport metadataReport = entry.getValue();
+                    // 发布provider元数据
                     metadataReport.storeProviderMetadata(new MetadataIdentifier(providerUrl.getServiceInterface(),
                             providerUrl.getParameter(VERSION_KEY), providerUrl.getParameter(GROUP_KEY),
                             PROVIDER_SIDE, providerUrl.getParameter(APPLICATION_KEY)), fullServiceDefinition);

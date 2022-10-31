@@ -149,6 +149,7 @@ public abstract class AbstractMetadataReport implements MetadataReport {
     }
 
     private void doSaveProperties(long version) {
+        // 如果当前变更版本小于最新变更版本，直接返回
         if (version < lastCacheChanged.get()) {
             return;
         }
@@ -157,12 +158,14 @@ public abstract class AbstractMetadataReport implements MetadataReport {
         }
         // Save
         try {
+            // 获取fileLock，如果不存在则创建
             File lockfile = new File(file.getAbsolutePath() + ".lock");
             if (!lockfile.exists()) {
                 lockfile.createNewFile();
             }
             try (RandomAccessFile raf = new RandomAccessFile(lockfile, "rw");
                  FileChannel channel = raf.getChannel()) {
+                // 获取文件锁，保证对缓存文件的写操作是同步的
                 FileLock lock = channel.tryLock();
                 if (lock == null) {
                     throw new IOException("Can not lock the metadataReport cache file " + file.getAbsolutePath() +
@@ -174,9 +177,11 @@ public abstract class AbstractMetadataReport implements MetadataReport {
                         file.createNewFile();
                     }
                     try (FileOutputStream outputFile = new FileOutputStream(file)) {
+                        // 将Properties中的服务元数据信息写入缓存文件中
                         properties.store(outputFile, "Dubbo metadataReport Cache");
                     }
                 } finally {
+                    // 释放文件锁
                     lock.release();
                 }
             }
@@ -184,6 +189,7 @@ public abstract class AbstractMetadataReport implements MetadataReport {
             if (version < lastCacheChanged.get()) {
                 return;
             } else {
+                // 发生异常，异步重试
                 reportCacheExecutor.execute(new SaveProperties(lastCacheChanged.incrementAndGet()));
             }
             logger.warn("Failed to save service store file, cause: " + e.getMessage(), e);
@@ -204,17 +210,22 @@ public abstract class AbstractMetadataReport implements MetadataReport {
     }
 
     private void saveProperties(MetadataIdentifier metadataIdentifier, String value, boolean add, boolean sync) {
+        // 判断缓存文件是否存在
         if (file == null) {
             return;
         }
 
         try {
             if (add) {
+                // 将服务元数据信息存储到Properties中
                 properties.setProperty(metadataIdentifier.getUniqueKey(KeyTypeEnum.UNIQUE_KEY), value);
             } else {
+                // 移除Properties中的服务元数据信息
                 properties.remove(metadataIdentifier.getUniqueKey(KeyTypeEnum.UNIQUE_KEY));
             }
+            // 获取缓存变更版本号
             long version = lastCacheChanged.incrementAndGet();
+            // 判断是同步还是异步保存
             if (sync) {
                 new SaveProperties(version).run();
             } else {
@@ -246,6 +257,7 @@ public abstract class AbstractMetadataReport implements MetadataReport {
 
     @Override
     public void storeProviderMetadata(MetadataIdentifier providerMetadataIdentifier, ServiceDefinition serviceDefinition) {
+        // 判断是否同步发布，默认异步
         if (syncReport) {
             storeProviderMetadataTask(providerMetadataIdentifier, serviceDefinition);
         } else {
@@ -258,14 +270,20 @@ public abstract class AbstractMetadataReport implements MetadataReport {
             if (logger.isInfoEnabled()) {
                 logger.info("store provider metadata. Identifier : " + providerMetadataIdentifier + "; definition: " + serviceDefinition);
             }
+            // 存储所有暴露的服务元数据
             allMetadataReports.put(providerMetadataIdentifier, serviceDefinition);
+            // 从发布失败的服务集合中移除该服务
             failedReports.remove(providerMetadataIdentifier);
             String data = JSON.toJSONString(serviceDefinition);
+            // 根据指定具体的元数据中心进行元数据发布（例如：zookeeper、nacos）
             doStoreProviderMetadata(providerMetadataIdentifier, data);
+            // 将服务元数据封装到Properties中缓存到文件中
             saveProperties(providerMetadataIdentifier, data, true, !syncReport);
         } catch (Exception e) {
             // retry again. If failed again, throw exception.
+            // 暴露失败加入failedReports集合中
             failedReports.put(providerMetadataIdentifier, serviceDefinition);
+            // 重试
             metadataReportRetry.startRetryTask();
             logger.error("Failed to put provider metadata " + providerMetadataIdentifier + " in  " + serviceDefinition + ", cause: " +
                     e.getMessage(), e);

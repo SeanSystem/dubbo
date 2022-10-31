@@ -173,6 +173,7 @@ public class InMemoryWritableMetadataService implements WritableMetadataService 
                     Class interfaceClass = Class.forName(interfaceName);
                     ServiceDefinition serviceDefinition = ServiceDefinitionBuilder.build(interfaceClass);
                     String data = JSON.toJSONString(serviceDefinition);
+                    // 保存暴露服务的ServiceDefinition
                     serviceDefinitions.put(providerUrl.getServiceKey(), data);
                     return;
                 }
