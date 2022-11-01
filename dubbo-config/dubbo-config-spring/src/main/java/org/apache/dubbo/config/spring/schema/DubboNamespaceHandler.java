@@ -54,6 +54,7 @@ public class DubboNamespaceHandler extends NamespaceHandlerSupport implements Co
 
     @Override
     public void init() {
+        // 注册相关标签对应的解析器
         registerBeanDefinitionParser("application", new DubboBeanDefinitionParser(ApplicationConfig.class, true));
         registerBeanDefinitionParser("module", new DubboBeanDefinitionParser(ModuleConfig.class, true));
         registerBeanDefinitionParser("registry", new DubboBeanDefinitionParser(RegistryConfig.class, true));
@@ -81,12 +82,15 @@ public class DubboNamespaceHandler extends NamespaceHandlerSupport implements Co
     @Override
     public BeanDefinition parse(Element element, ParserContext parserContext) {
         BeanDefinitionRegistry registry = parserContext.getRegistry();
+        // 注册sprig注解相关的后置处理器，用于sprig的注解处理
         registerAnnotationConfigProcessors(registry);
         /**
          * @since 2.7.8
          * issue : https://github.com/apache/dubbo/issues/6275
          */
+        // 注册dubbo相关的一些后置处理器和监听器
         registerCommonBeans(registry);
+        // 将dubbo对应标签解析为BeanDefinition
         BeanDefinition beanDefinition = super.parse(element, parserContext);
         setSource(beanDefinition);
         return beanDefinition;
