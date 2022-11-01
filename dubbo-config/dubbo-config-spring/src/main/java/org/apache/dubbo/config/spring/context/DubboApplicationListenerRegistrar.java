@@ -41,11 +41,14 @@ public class DubboApplicationListenerRegistrar implements ApplicationContextAwar
         if (!isAssignable(ConfigurableApplicationContext.class, applicationContext.getClass())) {
             throw new IllegalArgumentException("The argument of ApplicationContext must be ConfigurableApplicationContext");
         }
+        // 添加监听器
         addApplicationListeners((ConfigurableApplicationContext) applicationContext);
     }
 
     private void addApplicationListeners(ConfigurableApplicationContext context) {
+        // 添加DubboBootstrapApplicationListener监听器
         context.addApplicationListener(createDubboBootstrapApplicationListener(context));
+        // 添加DubboLifecycleComponentApplicationListener监听器
         context.addApplicationListener(createDubboLifecycleComponentApplicationListener(context));
     }
 

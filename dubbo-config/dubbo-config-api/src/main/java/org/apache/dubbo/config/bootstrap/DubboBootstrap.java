@@ -926,26 +926,33 @@ public class DubboBootstrap {
                 registerServiceInstance();
             }
 
+            // 获取引用的dubbo服务
             referServices();
+            // 如果存在异步的服务暴露
             if (asyncExportingFutures.size() > 0) {
                 new Thread(() -> {
                     try {
+                        // 等待异步服务暴露完成
                         this.awaitFinish();
                     } catch (Exception e) {
                         logger.warn(NAME + " exportAsync occurred an exception.");
                     }
+                    // 设置就绪状态
                     ready.set(true);
                     if (logger.isInfoEnabled()) {
                         logger.info(NAME + " is ready.");
                     }
+                    // 获取DubboBootstrapStartStopListener监听，调用监听器onStart方法
                     ExtensionLoader<DubboBootstrapStartStopListener> exts = getExtensionLoader(DubboBootstrapStartStopListener.class);
                     exts.getSupportedExtensionInstances().forEach(ext -> ext.onStart(this));
                 }).start();
             } else {
+                // 设置就绪状态
                 ready.set(true);
                 if (logger.isInfoEnabled()) {
                     logger.info(NAME + " is ready.");
                 }
+                // 获取DubboBootstrapStartStopListener监听，调用监听器onStart方法
                 ExtensionLoader<DubboBootstrapStartStopListener> exts = getExtensionLoader(DubboBootstrapStartStopListener.class);
                 exts.getSupportedExtensionInstances().forEach(ext -> ext.onStart(this));
             }
@@ -988,10 +995,12 @@ public class DubboBootstrap {
 
     public DubboBootstrap awaitFinish() throws Exception {
         logger.info(NAME + " waiting services exporting / referring ...");
+        // 等待所有服务暴露完成
         if (exportAsync && asyncExportingFutures.size() > 0) {
             CompletableFuture future = CompletableFuture.allOf(asyncExportingFutures.toArray(new CompletableFuture[0]));
             future.get();
         }
+        // 等待所有服务引用完成
         if (referAsync && asyncReferringFutures.size() > 0) {
             CompletableFuture future = CompletableFuture.allOf(asyncReferringFutures.toArray(new CompletableFuture[0]));
             future.get();

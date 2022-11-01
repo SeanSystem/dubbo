@@ -60,8 +60,10 @@ public class DubboBootstrapApplicationListener extends OnceApplicationContextEve
             DubboBootstrapStartStopListenerSpringAdapter.applicationContext = event.getApplicationContext();
         }
         if (event instanceof ContextRefreshedEvent) {
+            // 当监听到ContextRefreshedEvent事件时，调用DubboBootstrap.start()方法启动dubbo服务
             onContextRefreshedEvent((ContextRefreshedEvent) event);
         } else if (event instanceof ContextClosedEvent) {
+            // 当监听到ContextClosedEvent事件时，调用DubboShutdownHook.getDubboShutdownHook().run()关闭dubbo服务
             onContextClosedEvent((ContextClosedEvent) event);
         }
     }

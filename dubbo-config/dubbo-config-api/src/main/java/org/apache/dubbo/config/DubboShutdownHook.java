@@ -69,7 +69,7 @@ public class DubboShutdownHook extends Thread {
         if (logger.isInfoEnabled()) {
             logger.info("Run shutdown hook now.");
         }
-
+        // 执行Dubbo服务关闭回调钩子，例如DubboBootstrap.destroy()方法
         callback();
         doDestroy();
     }
@@ -115,7 +115,9 @@ public class DubboShutdownHook extends Thread {
         // dispatch the DubboDestroyedEvent @since 2.7.5
         dispatch(new DubboServiceDestroyedEvent(this));
         if (destroyed.compareAndSet(false, true)) {
+            // 销毁所有registry
             AbstractRegistryFactory.destroyAll();
+            // 销毁所有protocol
             destroyProtocols();
         }
     }

@@ -65,10 +65,12 @@ public abstract class DubboBeanUtils {
     public static void registerCommonBeans(BeanDefinitionRegistry registry) {
 
         // Since 2.5.7 Register @Reference Annotation Bean Processor as an infrastructure Bean
+        // 注册ReferenceAnnotationBeanPostProcessor后置处理器，用于处理引用Dubbo服务相关注解（如@DubboReference）
         registerInfrastructureBean(registry, ReferenceAnnotationBeanPostProcessor.BEAN_NAME,
                 ReferenceAnnotationBeanPostProcessor.class);
 
         // Since 2.7.4 [Feature] https://github.com/apache/dubbo/issues/5093
+        // 注册DubboConfigAliasPostProcessor后置处理器，用于给dubbo config bean添加别名
         registerInfrastructureBean(registry, DubboConfigAliasPostProcessor.BEAN_NAME,
                 DubboConfigAliasPostProcessor.class);
 
@@ -82,15 +84,18 @@ public abstract class DubboBeanUtils {
         // Since 2.7.4 Register DubboBootstrapApplicationListener as an infrastructure Bean
         // registerInfrastructureBean(registry, DubboBootstrapApplicationListener.BEAN_NAME,
         //        DubboBootstrapApplicationListener.class);
-
+        // 注册dubbo事件注册器
         registerInfrastructureBean(registry, DubboApplicationListenerRegistrar.BEAN_NAME,
                 DubboApplicationListenerRegistrar.class);
 
         // Since 2.7.6 Register DubboConfigDefaultPropertyValueBeanPostProcessor as an infrastructure Bean
+        // 注册DubboConfigDefaultPropertyValueBeanPostProcessor后置处理器，用于给ConfigBean中id和name为空情况下，设置默认值beanName
         registerInfrastructureBean(registry, DubboConfigDefaultPropertyValueBeanPostProcessor.BEAN_NAME,
                 DubboConfigDefaultPropertyValueBeanPostProcessor.class);
 
         // Since 2.7.15 Register DubboConfigEarlyRegistrationPostProcessor as an infrastructure Bean
+        // 注册DubboConfigEarlyRegistrationPostProcessor后置处理器，用于将比CommonAnnotationBeanPostProcessor更早实例化的ConfigBean
+        // 通过手动调用addIntoConfigManager()方法加入ConfigManager中，替代@PostConstruct注解方式
         registerInfrastructureBean(registry, DubboConfigEarlyRegistrationPostProcessor.BEAN_NAME,
                 DubboConfigEarlyRegistrationPostProcessor.class);
     }

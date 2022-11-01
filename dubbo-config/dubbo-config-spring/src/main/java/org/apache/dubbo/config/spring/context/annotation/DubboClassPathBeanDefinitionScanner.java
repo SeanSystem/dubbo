@@ -59,6 +59,7 @@ public class DubboClassPathBeanDefinitionScanner extends ClassPathBeanDefinition
     public DubboClassPathBeanDefinitionScanner(BeanDefinitionRegistry registry, Environment environment,
                                                ResourceLoader resourceLoader) {
 
+        // useDefaultFilters为false，表示不扫描默认注解，如spring的@Service注解
         this(registry, false, environment, resourceLoader);
 
     }

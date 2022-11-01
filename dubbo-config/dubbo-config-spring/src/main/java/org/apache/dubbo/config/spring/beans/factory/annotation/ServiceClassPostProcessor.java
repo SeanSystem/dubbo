@@ -87,6 +87,7 @@ import static org.springframework.util.ClassUtils.resolveClassName;
 public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProcessor, EnvironmentAware,
         ResourceLoaderAware, BeanClassLoaderAware {
 
+    // dubbo支持的服务暴露注解
     private static final List<Class<? extends Annotation>> serviceAnnotationTypes = asList(
             // @since 2.7.7 Add the @DubboService , the issue : https://github.com/apache/dubbo/issues/6007
             DubboService.class,
@@ -123,8 +124,10 @@ public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProc
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
 
         // @since 2.7.5
+        // 注册DubboBootstrapApplicationListener监听器，当监听到ContextRefreshedEvent事件时启动dubbo服务，ContextClosedEvent事件时关闭bubbo服务
         registerInfrastructureBean(registry, DubboBootstrapApplicationListener.BEAN_NAME, DubboBootstrapApplicationListener.class);
 
+        // 获取包扫描路径
         Set<String> resolvedPackagesToScan = resolvePackagesToScan(packagesToScan);
 
         if (!CollectionUtils.isEmpty(resolvedPackagesToScan)) {
@@ -145,14 +148,17 @@ public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProc
      */
     private void registerServiceBeans(Set<String> packagesToScan, BeanDefinitionRegistry registry) {
 
+        // 创建Dubbo类扫描器
         DubboClassPathBeanDefinitionScanner scanner =
                 new DubboClassPathBeanDefinitionScanner(registry, environment, resourceLoader);
 
+        // 获取beanName生成器
         BeanNameGenerator beanNameGenerator = resolveBeanNameGenerator(registry);
 
         scanner.setBeanNameGenerator(beanNameGenerator);
 
         // refactor @since 2.7.7
+        // 添加需要扫描的dubbo注解
         serviceAnnotationTypes.forEach(annotationType -> {
             scanner.addIncludeFilter(new AnnotationTypeFilter(annotationType));
         });
@@ -160,6 +166,7 @@ public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProc
         for (String packageToScan : packagesToScan) {
 
             // Registers @Service Bean first
+            // 先将需要暴露的dubbo服务类直接进行注册
             scanner.scan(packageToScan);
 
             // Finds all BeanDefinitionHolders of @Service whether @ComponentScan scans or not.
@@ -169,6 +176,7 @@ public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProc
             if (!CollectionUtils.isEmpty(beanDefinitionHolders)) {
 
                 for (BeanDefinitionHolder beanDefinitionHolder : beanDefinitionHolders) {
+                    // 将dubbo服务类封装为ServiceBean进行注册
                     registerServiceBean(beanDefinitionHolder, registry, scanner);
                 }
 
@@ -366,6 +374,7 @@ public class ServiceClassPostProcessor implements BeanDefinitionRegistryPostProc
         Set<String> resolvedPackagesToScan = new LinkedHashSet<String>(packagesToScan.size());
         for (String packageToScan : packagesToScan) {
             if (StringUtils.hasText(packageToScan)) {
+                // 支持解析${}表达式
                 String resolvedPackageToScan = environment.resolvePlaceholders(packageToScan.trim());
                 resolvedPackagesToScan.add(resolvedPackageToScan);
             }
