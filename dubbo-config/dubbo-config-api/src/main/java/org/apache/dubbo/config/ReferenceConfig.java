@@ -199,9 +199,11 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
     }
 
     public synchronized T get() {
+        // 判断ReferenceConfig是否已销毁
         if (destroyed) {
             throw new IllegalStateException("The invoker of ReferenceConfig(" + url + ") has already destroyed!");
         }
+        // 如果引用的远程服务代理对象为空，则初始化创建
         if (ref == null) {
             init();
         }

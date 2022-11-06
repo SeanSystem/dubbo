@@ -77,6 +77,7 @@ public abstract class AnnotatedInterfaceConfigBeanBuilder<C extends AbstractInte
 
         checkDependencies();
 
+        // 创建ReferenceBean实例
         C configBean = doBuild();
 
         configureBean(configBean);
@@ -105,14 +106,19 @@ public abstract class AnnotatedInterfaceConfigBeanBuilder<C extends AbstractInte
 
         preConfigureBean(attributes, configBean);
 
+        // 设置RegistryConfigs
         configureRegistryConfigs(configBean);
 
+        // 设置MonitorConfig
         configureMonitorConfig(configBean);
 
+        // 设置ApplicationConfig
         configureApplicationConfig(configBean);
 
+        // 设置ApplicationConfig
         configureModuleConfig(configBean);
 
+        // 其他配置
         postConfigureBean(attributes, configBean);
 
     }

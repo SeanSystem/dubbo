@@ -162,14 +162,19 @@ class ReferenceBeanBuilder extends AnnotatedInterfaceConfigBeanBuilder<Reference
 
         bean.setApplicationContext(applicationContext);
 
+        // 设置inerface
         configureInterface(attributes, bean);
 
+        // 设置ConsumerConfig
         configureConsumerConfig(attributes, bean);
 
+        // 设置MethodConfig
         configureMethodConfig(attributes, bean);
 
+        // 执行afterPropertiesSet
         bean.afterPropertiesSet();
 
+        // 执行bean的后置处理器的后置方法
         applicationContext.getAutowireCapableBeanFactory().applyBeanPostProcessorsAfterInitialization(bean, beanName);
 
     }
