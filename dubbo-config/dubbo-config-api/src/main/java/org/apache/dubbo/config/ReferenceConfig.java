@@ -247,14 +247,17 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             bootstrap.initialize();
         }
 
+        // 检查并更新配置
         checkAndUpdateSubConfigs();
 
         checkStubAndLocal(interfaceClass);
+        // 检查mock属性配置合法性
         ConfigValidationUtils.checkMock(interfaceClass, this);
 
         Map<String, String> map = new HashMap<String, String>();
         map.put(SIDE_KEY, CONSUMER_SIDE);
 
+        // 添加Dubbo运行时信息，如版本，运行时间
         ReferenceConfigBase.appendRuntimeParameters(map);
         if (!ProtocolUtils.isGeneric(generic)) {
             String revision = Version.getVersion(interfaceClass, version);
@@ -313,6 +316,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
         serviceMetadata.getAttachments().putAll(map);
 
+        // 创建引入服务代理对象
         ref = createProxy(map);
 
         serviceMetadata.setTarget(ref);
@@ -331,7 +335,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
     @SuppressWarnings({"unchecked", "rawtypes", "deprecation"})
     private T createProxy(Map<String, String> map) {
-        if (shouldJvmRefer(map)) {
+        if (shouldJvmRefer(map)) { // 判断是否需要进行本地服务引用
             URL url = new URL(LOCAL_PROTOCOL, LOCALHOST_VALUE, 0, interfaceClass.getName()).addParameters(map);
             invoker = REF_PROTOCOL.refer(interfaceClass, url);
             if (logger.isInfoEnabled()) {
@@ -357,7 +361,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             } else { // assemble URL from register center's configuration
                 // if protocols not injvm checkRegistry
                 if (!LOCAL_PROTOCOL.equalsIgnoreCase(getProtocol())) {
-                    checkRegistry();
+                    checkRegistry(); // 检查注册中心
                     List<URL> us = ConfigValidationUtils.loadRegistries(this, false);
                     if (CollectionUtils.isNotEmpty(us)) {
                         for (URL u : us) {
@@ -440,11 +444,14 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
      * Check each config modules are created properly and override their properties if necessary.
      */
     public void checkAndUpdateSubConfigs() {
+        // 价差interfaceName是否为空，为空则抛出异常
         if (StringUtils.isEmpty(interfaceName)) {
             throw new IllegalStateException("<dubbo:reference interface=\"\" /> interface not allow null!");
         }
+        // 如果consumer配置信息不为空，使用consumer中的配置信息更新各组件配置信息
         completeCompoundConfigs(consumer);
         // get consumer's global configuration
+        // 如果consumer配置为空则创建
         checkDefault();
 
         // init some null configuration.
@@ -452,6 +459,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                 .getActivateExtension(URL.valueOf("configInitializer://"), (String[]) null);
         configInitializers.forEach(e -> e.initReferConfig(this));
 
+        // 更新配置信息
         this.refresh();
         if (getGeneric() == null && getConsumer() != null) {
             setGeneric(getConsumer().getGeneric());
@@ -460,14 +468,17 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             interfaceClass = GenericService.class;
         } else {
             try {
+                // 获取接口类
                 interfaceClass = Class.forName(interfaceName, true, Thread.currentThread()
                         .getContextClassLoader());
             } catch (ClassNotFoundException e) {
                 throw new IllegalStateException(e.getMessage(), e);
             }
+            // 检查接口和方法合法性
             checkInterfaceAndMethods(interfaceClass, getMethods());
         }
 
+        // 初始化ServiceMetadata
         initServiceMetadata(consumer);
         serviceMetadata.setServiceType(getActualInterface());
         // TODO, uncomment this line once service key is unified
@@ -475,6 +486,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
         ServiceRepository repository = ApplicationModel.getServiceRepository();
         ServiceDescriptor serviceDescriptor = repository.registerService(interfaceClass);
+        // 注册Consumer
         repository.registerConsumer(
                 serviceMetadata.getServiceKey(),
                 serviceDescriptor,
@@ -483,7 +495,9 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                 serviceMetadata);
 
         resolveFile();
+        // 检查配置合法性
         ConfigValidationUtils.validateReferenceConfig(this);
+        // 配置后置处理
         postProcessConfig();
     }
 
