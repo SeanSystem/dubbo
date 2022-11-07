@@ -232,15 +232,16 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
     }
 
     public synchronized void init() {
+        // 判断是否已经实例化
         if (initialized) {
             return;
         }
 
-
+        // 如果bootstrap为空，则获取实例并执行初始化方法
         if (bootstrap == null) {
             bootstrap = DubboBootstrap.getInstance();
             // compatible with api call.
-            if (null != this.getRegistries()) {
+            if (null != this.getRegistries()) { // 添加注册中心配置
                 bootstrap.registries(this.getRegistries());
             }
             bootstrap.initialize();

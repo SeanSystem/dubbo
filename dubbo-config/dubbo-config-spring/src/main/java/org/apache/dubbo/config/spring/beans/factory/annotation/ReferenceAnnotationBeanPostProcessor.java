@@ -102,6 +102,7 @@ public class ReferenceAnnotationBeanPostProcessor extends AbstractAnnotationBean
      * {@link DubboReference @DubboReference} has been supported since 2.7.7
      */
     public ReferenceAnnotationBeanPostProcessor() {
+        // 配置要解析的注解
         super(DubboReference.class, Reference.class, com.alibaba.dubbo.config.annotation.Reference.class);
         setClassValuesAsString(false);
         setNestedAnnotationsAsMap(false);
