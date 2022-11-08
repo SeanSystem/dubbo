@@ -343,6 +343,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             }
         } else {
             urls.clear();
+            // 消费者指定url情况下，url可能为点对点的服务地址，也可能为注册中心地址
             if (url != null && url.length() > 0) { // user specified URL, could be peer-to-peer address, or register center's address.
                 String[] us = SEMICOLON_SPLIT_PATTERN.split(url);
                 if (us != null && us.length > 0) {
@@ -351,7 +352,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                         if (StringUtils.isEmpty(url.getPath())) {
                             url = url.setPath(interfaceName);
                         }
-                        if (UrlUtils.isRegistry(url)) {
+                        if (UrlUtils.isRegistry(url)) { // url是注册中心地址
                             urls.add(url.addParameterAndEncoded(REFER_KEY, StringUtils.toQueryString(map)));
                         } else {
                             urls.add(ClusterUtils.mergeUrl(url, map));
@@ -362,16 +363,20 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                 // if protocols not injvm checkRegistry
                 if (!LOCAL_PROTOCOL.equalsIgnoreCase(getProtocol())) {
                     checkRegistry(); // 检查注册中心
+                    // 加载注册中心地址
                     List<URL> us = ConfigValidationUtils.loadRegistries(this, false);
                     if (CollectionUtils.isNotEmpty(us)) {
                         for (URL u : us) {
+                            // 加载monitor
                             URL monitorUrl = ConfigValidationUtils.loadMonitor(this, u);
                             if (monitorUrl != null) {
                                 map.put(MONITOR_KEY, URL.encode(monitorUrl.toFullString()));
                             }
+                            // 添加注册中心url
                             urls.add(u.addParameterAndEncoded(REFER_KEY, StringUtils.toQueryString(map)));
                         }
                     }
+                    // 如果注册中心地址为空，抛出异常提示
                     if (urls.isEmpty()) {
                         throw new IllegalStateException(
                                 "No such any registry to reference " + interfaceName + " on the consumer " + NetUtils.getLocalHost() +
@@ -381,11 +386,13 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                 }
             }
 
-            if (urls.size() == 1) {
+            if (urls.size() == 1) { // 只有一个注册中心情况
+                // 调用流程 ProtocolFilterWrapper -> ProtocolListenerWrapper
                 invoker = REF_PROTOCOL.refer(interfaceClass, urls.get(0));
             } else {
                 List<Invoker<?>> invokers = new ArrayList<Invoker<?>>();
                 URL registryURL = null;
+                // 多注册中心情况，获取每个注册中心对应的Invoker
                 for (URL url : urls) {
                     // For multi-registry scenarios, it is not checked whether each referInvoker is available.
                     // Because this invoker may become available later.

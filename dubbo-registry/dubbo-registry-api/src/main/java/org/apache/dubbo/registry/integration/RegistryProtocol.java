@@ -470,8 +470,9 @@ public class RegistryProtocol implements Protocol {
     @SuppressWarnings("unchecked")
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
         url = getRegistryUrl(url);
+        // 获取注册中心
         Registry registry = getRegistry(url);
-        if (RegistryService.class.equals(type)) {
+        if (RegistryService.class.equals(type)) { // 如果引用服务类型为RegistryService
             return proxyFactory.getInvoker((T) registry, type, url);
         }
 
@@ -483,8 +484,9 @@ public class RegistryProtocol implements Protocol {
                 return doRefer(Cluster.getCluster(MergeableCluster.NAME), registry, type, url, qs);
             }
         }
-
+        // 获取指定的Cluster，如未指定默认为FailoverCluster
         Cluster cluster = Cluster.getCluster(qs.get(CLUSTER_KEY));
+        // 获取invoker
         return doRefer(cluster, registry, type, url, qs);
     }
 
@@ -588,7 +590,7 @@ public class RegistryProtocol implements Protocol {
             return;
         }
         ExtensionLoader.getExtensionLoader(GovernanceRuleRepository.class).getDefaultExtension()
-            .removeListener(application + CONFIGURATORS_SUFFIX, providerConfigurationListener);
+                .removeListener(application + CONFIGURATORS_SUFFIX, providerConfigurationListener);
     }
 
     @Override
@@ -711,7 +713,7 @@ public class RegistryProtocol implements Protocol {
             newUrl = getConfiguredInvokerUrl(serviceConfigurationListeners.get(originUrl.getServiceKey())
                     .getConfigurators(), newUrl);
             if (!newUrl.equals(currentUrl)) {
-                if(newUrl.getParameter(Constants.NEED_REEXPORT, true)) {
+                if (newUrl.getParameter(Constants.NEED_REEXPORT, true)) {
                     RegistryProtocol.this.reExport(originInvoker, newUrl);
                 }
                 LOGGER.info("exported provider url changed, origin url: " + originUrl +
@@ -817,7 +819,7 @@ public class RegistryProtocol implements Protocol {
 
         @Override
         public void unexport() {
-            if (!unexported.compareAndSet(false,true)) {
+            if (!unexported.compareAndSet(false, true)) {
                 return;
             }
 
